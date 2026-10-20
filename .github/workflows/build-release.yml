@@ -15,7 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Prepare Arduino sketch
+        run: |
+          rm -rf firmware/ParentHub
+          mkdir -p firmware/ParentHub
+          unzip -j source/ParentHub_Pro_V4.zip ParentHub.ino web_ui.h -d firmware/ParentHub
+          test -f firmware/ParentHub/ParentHub.ino
+          test -f firmware/ParentHub/web_ui.h
+
       - uses: arduino/setup-arduino-cli@v2
+
       - name: Install ESP32 core and libraries
         run: |
           arduino-cli config init --overwrite
@@ -23,15 +33,18 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
           arduino-cli lib install ArduinoJson
+
       - name: Compile
         run: |
           mkdir -p build
           arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir build firmware/ParentHub
           cp build/ParentHub.ino.bin build/ParentHub.bin
+
       - uses: actions/upload-artifact@v4
         with:
           name: ParentHub-firmware
           path: build/ParentHub.bin
+
       - name: Publish GitHub Release asset
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
